@@ -1,0 +1,94 @@
+LSB.m MATLAB
+clear all;
+
+% 保存开始时间
+
+start_time=cputime;
+
+% 读入原图像
+
+file_name='image.png';
+
+[cover_object,map]=imread(file_name);
+
+% 读入水印图像
+
+file_name='watermark.bmp';
+
+[message,map1]=imread(file_name);
+
+message1=message;
+
+message=double(message); %%转换为double数
+
+message=fix(message./2); %%转换为0，1组成的矩阵
+
+message=uint8(message); %%转换为uint8数
+
+% 原图的行数与列数
+
+Mc=size(cover_object,1); %原图的行数
+
+Nc=size(cover_object,2); %原图的列数
+
+% 水印的行数与列数
+
+Mm=size(message,1); %水印的行数
+
+Nm=size(message,2); %水印的列数
+
+% 将水印扩展为原图像大小，并写入watermark
+
+for ii = 1:Mc
+
+for jj = 1:Nc
+
+watermark(ii,jj)=message(mod(ii,Mm)+1,mod(jj,Nm)+1);
+
+% 用mod函数进行求余处理
+
+end
+
+end
+
+% 将原图的最低有效位值换为水印的值
+
+watermarked_image=cover_object;
+
+for ii = 1:Mc
+
+for jj = 1:Nc
+
+watermarked_image(ii,jj)=bitset(watermarked_image(ii,jj),1,watermark(ii,jj));
+
+% 用bitset函数将原图的最低有效位值换为水印的值
+
+end
+
+end
+
+% 将嵌入水印图像写入lsb_watermarked.bmp
+
+imwrite(watermarked_image,'lsb_watermarked.bmp','bmp');
+
+% 显示运行时间
+
+elapsed_time=cputime-start_time,
+
+% 显示嵌入水印图像
+
+figure(1);
+
+subplot(1,2,1);
+
+imshow(watermarked_image,[]);
+
+title('Image embedded with watermark');
+
+subplot(1,2,2);
+
+imshow(cover_object,[]);
+
+title('Original image');
+
+
