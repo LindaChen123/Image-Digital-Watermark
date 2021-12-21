@@ -1,0 +1,91 @@
+clear all;
+
+% 保存开始时间
+
+start_time=cputime;
+
+% 读入嵌入水印图像
+
+file_name='LSBattacked4.bmp';
+
+watermarked_image=imread(file_name);
+
+% 嵌入水印图像的行数与列数
+
+Mw=size(watermarked_image,1);%嵌入水印图像行数
+
+Nw=size(watermarked_image,2);%嵌入水印图像列数
+
+%读入原始水印
+
+file_name='watermark.bmp';
+
+orig_watermark=imread(file_name);
+
+%%原始水印的行数与列数
+
+Mm=size(orig_watermark,1); %水印的行数
+Nm=size(orig_watermark,2);
+
+
+% 用嵌入水印图像的最低有效位重建水印
+
+for ii = 1:Mw
+
+for jj = 1:Nw
+
+watermark(ii,jj)=bitget(watermarked_image(ii,jj),1);
+
+% 用bitget函数重建水印
+
+end
+
+end
+
+% 将提取水印变为原始水印大小
+
+watermark=2*double(watermark);
+
+for ii = 1:Mm-1
+
+for jj = 1:Nm-1
+
+watermark1(ii+1,jj+1)=watermark(ii,jj);
+
+end
+
+end
+
+watermark1(1,1)=watermark(Mm,Nm);
+
+% 显示运行时间
+
+elapsed_time=cputime-start_time,
+
+% 显示嵌入水印图像，提取水印以及原始水印
+
+figure(1);
+
+subplot(1,2,1);
+
+imshow(watermarked_image,[]);
+
+
+title('嵌入水印图像');
+
+figure(2);
+
+subplot(1,2,1);
+
+imshow(watermark1,[]);
+imwrite(watermark1,'LSBattackedrecovery4.bmp','bmp');
+
+title('watermark image2');
+
+figure(2);
+
+subplot(1,2,2);
+
+imshow(orig_watermark,[]);
+
+title('原始水印');
