@@ -1,0 +1,139 @@
+%------------------------------------------------------------------%
+%     基于DCT变换的信息隐藏(数字水印)     %%                                                                %%                                                                %
+%-----------------------------------------------------------=------%
+clear ;
+clc;  
+%-----------------------读入图像-------------------------------------%
+markbefore=imread('watermark.bmp');
+markbefore2=rgb2gray(markbefore);
+mark=im2bw(markbefore2);    %使水印图像变为二值图
+figure(1);      %打开窗口
+subplot(2,3,1);    %该窗口内的图像可以有两行三列
+imshow(mark),title('水印图像');   %显示水印图像
+[rm,cm]=size(mark);   %计算水印图像的长宽
+ 
+cover_image=imread('image.png');
+cover_image=rgb2gray(cover_image);
+subplot(2,3,2),imshow(cover_image,[]),title('载体图像'); %[]表示显示时灰度范围为image上的灰度最小值到最大值
+ 
+before=blkproc(cover_image,[8 8],'dct2');   %将载体图像的灰度层分为8×8的小块，每一块内做二维DCT变换，结果记入矩阵before
+ 
+I=mark;
+alpha=30;     %尺度因子,控制水印添加的强度,决定了频域系数被修改的幅度
+k1=[-1.5725    0.3711   -0.2753    1.4399   -0.4184   -1.1770    1.6385   -1.9153];  %产生两个不同的随机序列
+k2=[-0.1269    1.2391   -0.7394   -1.9885   -0.1992   -1.4075    1.2092    0.4640];
+
+after=before;   %初始化载入水印的结果矩阵
+for i=1:rm          %在中频段嵌入水印
+    for j=1:cm
+        x=(i-1)*8;
+        y=(j-1)*8;
+        if mark(i,j)==1
+            k=k1;
+        else
+            k=k2;
+        end;
+        after(x+1,y+8)=before(x+1,y+8)+alpha*k(1);
+        after(x+2,y+7)=before(x+2,y+7)+alpha*k(2);
+        after(x+3,y+6)=before(x+3,y+6)+alpha*k(3);
+        after(x+4,y+5)=before(x+4,y+5)+alpha*k(4);
+        after(x+5,y+4)=before(x+5,y+4)+alpha*k(5);
+        after(x+6,y+3)=before(x+6,y+3)+alpha*k(6);
+        after(x+7,y+2)=before(x+7,y+2)+alpha*k(7);
+        after(x+8,y+1)=before(x+8,y+1)+alpha*k(8);
+    end;
+end;
+result=blkproc(after,[8 8],'idct2');    %将经处理的图像分为8×8的小块，每一块内做二维DCT逆变换
+result = uint8(result);
+imwrite(result,'markresule.bmp','bmp');      %存储添加水印后的图像
+subplot(2,3,3),imshow(result,[]),title('嵌入水印的图像');    %显示添加水印后的图像
+ 
+%定义一个空空间来存储提取的水印
+disp('请选择对图像的攻击方式：');
+disp('1.添加白噪声');
+disp('2.高斯低通滤波处理');
+disp('3.对图像进行部分剪切');
+disp('4.图像旋转');
+
+choice=input('请输入选择：');
+figure(1);
+I = result;
+switch choice        %读入输入的选择  withmark为等待提取水印的图像
+    case 1
+        Aimage1=I;
+        Wnoise=uint8(20*randn(size(Aimage1)));
+        %Wnoise=20*randn(size(Aimage1),'like',wimage);
+        Aimage1=Aimage1+Wnoise;
+        subplot(2,3,1),imshow(Aimage1,[]),title('Gaussian white noise');
+        imwrite(Aimage1,'DCTattacked1.bmp','bmp');
+        withmark=Aimage1;
+    case 2
+         Aimage2=I;
+        H=fspecial('gaussian',[4,4],0.5);
+        Aimage2=imfilter(Aimage2,H);
+        subplot(2,3,2),imshow(Aimage2,[]),title('Gaussian low pass filter');
+        imwrite(Aimage2,'DCTattacked2.bmp','bmp');
+        withmark=Aimage2;
+    case 3
+        Aimage3=I;
+        image_size=size(I);
+        dimension = numel(image_size); 
+        if dimension == 3
+            Aimage3_r = Aimage3(:,:,1);
+            Aimage3_r(1:1128,1:1128)=256;
+            Aimage3_g = Aimage3(:,:,2);
+            Aimage3_g(1:1128,1:1128)=256;
+            Aimage3_b = Aimage3(:,:,3);
+            Aimage3_b(1:1128,1:1128)=256;
+        
+    
+        Aimage3(:,:,1) = Aimage3_r;
+        Aimage3(:,:,2) = Aimage3_g;
+        Aimage3(:,:,3) = Aimage3_b;
+        end
+        if dimension == 2
+            Aimage3(1:1128,1:1128)=256;
+        end
+        subplot(2,3,3),imshow(Aimage3,[]),title('Cutting');
+        imwrite(Aimage3,'DCTattacked3.bmp','bmp');
+        withmark=Aimage3;
+    case 4
+        Aimage4=I;
+        Aimage4=imrotate(Aimage4,10,'bilinear','crop');
+        Aimage_4=mat2gray(Aimage4);
+        subplot(2,3,4),imshow(Aimage_4,[]),title('Rotation');
+        imwrite(Aimage4,'DCTattacked4.bmp','bmp');
+        withmark=Aimage4;
+end
+%------------------------水印提取-----------------------------%
+%
+after_2=blkproc(withmark,[8,8],'dct2');   %此步开始提取水印，将灰度层分块进行DCT变换
+p=zeros(1,8);        %初始化提取数值用的矩阵
+mark_2 = zeros(rm,cm);
+for i=1:rm
+    for j=1:cm
+        x=(i-1)*8;y=(j-1)*8;
+        p(1)=after_2(x+1,y+8);         %将之前改变过数值的点的数值提取出来
+        p(2)=after_2(x+2,y+7);
+        p(3)=after_2(x+3,y+6);
+        p(4)=after_2(x+4,y+5);
+        p(5)=after_2(x+5,y+4);
+        p(6)=after_2(x+6,y+3);
+        p(7)=after_2(x+7,y+2);
+        p(8)=after_2(x+8,y+1);
+        if corr2(p,k1)>corr2(p,k2)  %corr2计算两个矩阵的相似度，越接近1相似度越大
+            mark_2(i,j)=1;              %比较提取出来的数值与随机频率k1和k2的相似度，还原水印图样
+        else
+            mark_2(i,j)=0;
+        end
+    end
+end
+subplot(2,3,5);
+mark_2 = uint8(mark_2);
+imshow(mark_2,[]),title('');
+imwrite(mark_2,'DCT-attackedrecovery1.bmp','bmp');
+subplot(2,3,6);
+imshow(mark),title('原嵌入水印');
+NC=correlation(mark_2,mark);  
+disp('原水印图像与提取水印图像互相关系数:')
+disp(NC);
