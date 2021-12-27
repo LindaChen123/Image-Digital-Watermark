@@ -6,14 +6,14 @@ Aimage1=I;
 Wnoise=uint8(20*randn(size(Aimage1)));
 %Wnoise=20*randn(size(Aimage1),'like',wimage);
 Aimage1=Aimage1+Wnoise;
-subplot(2,3,1),imshow(Aimage1,[]),title('Gaussian white noise');
+subplot(2,5,1),imshow(Aimage1,[]),title('Gaussian white noise');
 imwrite(Aimage1,'DCTattacked1.bmp','bmp');
  
 % 高斯低通滤波 
 Aimage2=I;
 H=fspecial('gaussian',[4,4],0.5);
 Aimage2=imfilter(Aimage2,H);
-subplot(2,3,2),imshow(Aimage2,[]),title('Gaussian low pass filter');
+subplot(2,5,2),imshow(Aimage2,[]),title('Gaussian low pass filter');
 imwrite(Aimage2,'DCTattacked2.bmp','bmp');
 
 % 剪切攻击 
@@ -36,15 +36,74 @@ end
 if dimension == 2
     Aimage3(1:1128,1:1128)=256;
 end
-subplot(2,3,3),imshow(Aimage3,[]),title('Cutting');
+subplot(2,5,3),imshow(Aimage3,[]),title('Cutting');
 imwrite(Aimage3,'DCTattacked3.bmp','bmp');
  
 % 旋转攻击 
 Aimage4=I;
 Aimage4=imrotate(Aimage4,10,'bilinear','crop');
 Aimage_4=mat2gray(Aimage4);
-subplot(2,3,4),imshow(Aimage_4,[]),title('Rotation');
+subplot(2,5,4),imshow(Aimage_4,[]),title('Rotation');
 imwrite(Aimage4,'DCTattacked4.bmp','bmp');
  
- % 没有受到攻击 
-subplot(2,3,5),imshow(I,[]),title('Unattacked');
+ %椒盐噪声
+Aimage5=I;
+Aimage5=imnoise(Aimage5,'salt & pepper',0.01);
+subplot(2,5,5),imshow(Aimage5,[]),title('salt & pepper');
+imwrite(Aimage5,'DCTattacked5.bmp','bmp');
+
+%泊松噪声
+Aimage6=I;
+Aimage6=imnoise(Aimage6,'poisson');
+subplot(2,5,6),imshow(Aimage6,[]),title('poisson');
+imwrite(Aimage6,'DCTattacked6.bmp','bmp');
+
+%乘性噪声
+Aimage7=I;
+Aimage7=imnoise(Aimage7,'speckle');
+subplot(2,5,7),imshow(Aimage7,[]),title('speckle');
+imwrite(Aimage7,'DCTattacked7.bmp','bmp');
+
+%放大
+Aimage8=I;
+Aimage8=imresize(Aimage8,2);
+subplot(2,5,8),imshow(Aimage8,[]),title('amplify');
+imwrite(Aimage8,'DCTattacked8.bmp','bmp');
+
+%缩小
+Aimage9=I;
+Aimage9=imresize(Aimage9,0.5);
+subplot(2,5,9),imshow(Aimage9,[]),title('shrink');
+imwrite(Aimage9,'DCTattacked9.bmp','bmp');
+
+%压缩
+Aimage10=I;
+result_9 = I; 
+result_9=im2double(result_9); 
+cnum=10; 
+dctm=dctmtx(8); 
+P1=dctm; 
+P2=dctm.'; 
+imageDCT=blkproc(result_9,[8,8],'P1*x*P2',dctm,dctm.'); 
+DCTvar=im2col(imageDCT,[8,8],'distinct').'; 
+n=size(DCTvar,1); 
+DCTvar=(sum(DCTvar.*DCTvar)-(sum(DCTvar)/n).^2)/n; 
+[dum,order]=sort(DCTvar); 
+cnum=64-cnum; 
+mask=ones(8,8); 
+mask(order(1:cnum))=zeros(1,cnum); 
+im88=zeros(9,9); 
+im88(1:8,1:8)=mask; 
+im128128=kron(im88(1:8,1:8),ones(16)); 
+dctm=dctmtx(8); 
+P1=dctm.'; 
+P2=mask(1:8,1:8); 
+P3=dctm; 
+result_9=blkproc(imageDCT,[8,8],'P1*(x.*P2)*P3',dctm.',mask(1:8,1:8),dctm); 
+WImage5cl=mat2gray(result_9); 
+withmark=WImage5cl;
+subplot(2,5,10),imshow(withmark,[]),title('compress');
+imwrite(withmark,'DCTattacked10.bmp','bmp');
+
+
+
